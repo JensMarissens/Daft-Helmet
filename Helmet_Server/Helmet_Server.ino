@@ -1,4 +1,4 @@
-#include "Adafruit_TLC5947.h"
+#include "Adafruit_TLC5947.h" //CODE REQUIRES SEVERE OPTIMIZATION
 
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
@@ -21,8 +21,8 @@ Adafruit_TLC5947 tlc = Adafruit_TLC5947(NUM_TLC5974, clock, data, latch);
 
 
 /*Put your SSID & Password*/
-const char* ssid = "telenet-5812351";  // Enter SSID here
-const char* password = "dre3sTzanxrr";  //Enter Password here
+const char* ssid = " ";  // Enter SSID here
+const char* password = " ";  //Enter Password here
 
 ESP8266WebServer server(80);
 
