@@ -22,8 +22,8 @@ Adafruit_TLC5947 tlc = Adafruit_TLC5947(NUM_TLC5974, clock, data, latch);
 
 
 /*Put your SSID & Password*/
-const char* ssid = "telenet-E2B7EEB";   //REPLACE WITH PHONE HOTSPOT
-const char* password = "Ks2bwcznZcxv";  //REPLACE WITH PHONE HOTSPOT
+const char* ssid = "";   //REPLACE WITH PHONE HOTSPOT
+const char* password = "";  //REPLACE WITH PHONE HOTSPOT
 
 ESP8266WebServer server(80);
 
