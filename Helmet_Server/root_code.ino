@@ -85,8 +85,6 @@ void loop() {
 
   if (scanButton) {
     scan();
-  } else {
-    scanButton = 0;
   }
 }
 
@@ -126,6 +124,8 @@ void powerOff() {
 }
 
 void eyes() {
+  cut();
+
   digitalWrite(0, LOW);   /*1*/
   digitalWrite(2, LOW);   /*2*/
   digitalWrite(14, HIGH); /*3*/
@@ -156,6 +156,8 @@ void eyes() {
 }
 
 void eyes2() {
+  cut();
+
   digitalWrite(0, LOW);   /*1*/
   digitalWrite(2, HIGH);  /*2*/
   digitalWrite(14, HIGH); /*3*/
@@ -182,12 +184,9 @@ void eyes2() {
 }
 
 void scan() {
-  Serial.print('Scan before sB = 1');
-  Serial.println(scanButton);
+  cut();
 
   scanButton = 1;
-  Serial.print('Scan after sB = 1');
-  Serial.println(scanButton);
 
   digitalWrite(0, HIGH);  /*1*/
   digitalWrite(2, HIGH);  /*2*/
@@ -198,11 +197,22 @@ void scan() {
 
   while (scanButton) {
 
-    for (int i = 30; i >= 0; i--) {
+    for (int i = 30; i >= 1; i--) {
       tlc.setPWM(cols[i], aan);
+      tlc.setPWM(cols[i - 1], aan);
       tlc.write();
       delay(40);
       tlc.setPWM(cols[i], uit);
+      tlc.setPWM(cols[i - 1], uit);
+      tlc.write();
+    }
+    for (int i = 0; i <= 29; i++) {
+      tlc.setPWM(cols[i], aan);
+      tlc.setPWM(cols[i + 1], aan);
+      tlc.write();
+      delay(40);
+      tlc.setPWM(cols[i], uit);
+      tlc.setPWM(cols[i + 1], uit);
       tlc.write();
     }
     break;
@@ -210,11 +220,7 @@ void scan() {
 }
 
 void cut() {
-  Serial.print('Cut before sB = 0');
-  Serial.println(scanButton);
   scanButton = 0;
-  Serial.print('Cut after sB = 0');
-  Serial.println(scanButton);
 
   digitalWrite(0, LOW);  /*1*/
   digitalWrite(2, LOW);  /*2*/
@@ -247,42 +253,38 @@ void burst() {
 
 
 void handle_OnConnect() {
+  powerOn();
   server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
 }
 
 void handle_powerOn() {
   powerOn();
-
   server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
 }
 
 void handle_powerOff() {
   powerOff();
-
   server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
 }
 
 void handle_eyes() {
   eyes();
-
   server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
 }
 
 void handle_eyes2() {
   eyes2();
-
   server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
 }
 
 void handle_cut() {
   cut();
-
   server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
 }
 
 void handle_scan() {
-  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
   scan();
+  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
 }
 
 void handle_NotFound() {
@@ -321,9 +323,9 @@ String SendHTML(uint8_t powerState, uint8_t button2stat, uint8_t scanState) {
 
 
   if (scanState) {
-    ptr += "<p>Scan state:</p><a class=\"button button-off\" href=\"/scan\">OFF</a>\n";
+    ptr += "<p>Scan state:</p><a class=\"button button-off\" href=\"/cut\">ON</a>\n";
   } else {
-    ptr += "<p>Scan state:</p><a class=\"button button-on\" href=\"/cut\">ON</a>\n";
+    ptr += "<p>Scan state:</p><a class=\"button button-on\" href=\"/scan\">OFF</a>\n";
   }
 
   ptr += "</body>\n";
