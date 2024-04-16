@@ -3,29 +3,29 @@
 #include <ESP8266WiFi.h>
 #include <ESP8266WebServer.h>
 
-// How many boards do you have chained?
 #define NUM_TLC5974 2
 
 #define data D0
 #define clock D1
 #define latch D2
-#define oe -1  // set to -1 to not use the enable pin (its optional)
+#define oe -1
 
-int cols[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 };
-int rows[] = { 0, 2, 14, 12, 13, 15 };
 #define uit 0
 #define aan 4095
-
-int x = 30;
 
 Adafruit_TLC5947 tlc = Adafruit_TLC5947(NUM_TLC5974, clock, data, latch);
 
 
-/*Put your SSID & Password*/
+/* NETWORK CREDENTIALS */
 const char* ssid = "telenet-E2B7EEB";   //REPLACE WITH PHONE HOTSPOT
 const char* password = "Ks2bwcznZcxv";  //REPLACE WITH PHONE HOTSPOT
 
 ESP8266WebServer server(80);
+
+
+/*------VARIABLES------*/
+int cols[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 };
+int rows[] = { 0, 2, 14, 12, 13, 15 };
 
 bool powerButton;
 bool button2;
@@ -40,6 +40,8 @@ enum Mode { POWER,
 
 Mode mode;
 
+
+/*------SETUP------*/
 void setup() {
   Serial.begin(115200);
   delay(100);
@@ -90,9 +92,11 @@ void setup() {
   server.begin();
   Serial.println("HTTP server started");
 }
+
+
+/*------LOOP------*/
 void loop() {
   server.handleClient();
-
 
   switch (mode) {
     case EYES3:
@@ -111,20 +115,18 @@ void loop() {
       }
       break;
     default:
-      // Handle invalid mode
+
       break;
   }
 }
+/*------END LOOP------*/
 
+
+/*-----POWER MODES-----*/
 void powerOn() {
   powerButton = 1;
 
-  digitalWrite(rows[0], HIGH);  /*1*/
-  digitalWrite(rows[1], HIGH);  /*2*/
-  digitalWrite(rows[2], HIGH); /*3*/
-  digitalWrite(rows[3], HIGH); /*4*/
-  digitalWrite(rows[4], HIGH); /*5*/
-  digitalWrite(rows[5], HIGH); /*6*/
+  setRows(1, 1, 1, 1, 1, 1);
 
   for (int i = 30; i >= 0; i--) {
     tlc.setPWM(cols[i], aan);
@@ -150,53 +152,46 @@ void powerOff() {
 
   powerButton = 0;
 }
+/*----END POWER MODES----*/
 
-/* EYE STYLES (static)*/
 
+/*----EYE STYLES (static)----*/
 void eyes() {
   cut();
 
   button2 = 0;
 
-  digitalWrite(rows[0], LOW);   /*1*/
-  digitalWrite(rows[1], LOW);   /*2*/
-  digitalWrite(rows[2], HIGH); /*3*/
-  digitalWrite(rows[3], HIGH); /*4*/
-  digitalWrite(rows[4], LOW);  /*5*/
-  digitalWrite(rows[5], LOW);  /*6*/
+  setRows(0, 0, 1, 1, 0, 0);
 
   for (int i = 0; i < 9; i++) {
     tlc.setPWM(i, uit);
   }
-  tlc.setPWM(cols[10], aan);
-  tlc.setPWM(cols[11], aan);
-  tlc.setPWM(cols[12], aan);
-  tlc.setPWM(cols[13], aan);
+
+  for (int i = 10; i < 14; i++) {
+    tlc.setPWM(cols[i], aan);
+  }
+
   for (int i = 13; i < 18; i++) {
     tlc.setPWM(i, uit);
   }
-  tlc.setPWM(cols[19], aan);
-  tlc.setPWM(cols[20], aan);
-  tlc.setPWM(cols[21], aan);
-  tlc.setPWM(cols[22], aan);
+
+  for (int i = 19; i < 23; i++) {
+    tlc.setPWM(cols[i], aan);
+  }
+
   for (int i = 22; i < 31; i++) {
     tlc.setPWM(i, uit);
   }
   tlc.write();
-
 }
+
 
 void eyes2() {
   cut();
 
   button2 = 1;
 
-  digitalWrite(rows[0], LOW);   /*1*/
-  digitalWrite(rows[1], HIGH);   /*2*/
-  digitalWrite(rows[2], HIGH); /*3*/
-  digitalWrite(rows[3], HIGH); /*4*/
-  digitalWrite(rows[4], HIGH);  /*5*/
-  digitalWrite(rows[5], LOW);  /*6*/
+  setRows(0, 1, 1, 1, 1, 0);
 
   for (int i = 0; i < 10; i++) {
     tlc.setPWM(i, uit);
@@ -213,6 +208,7 @@ void eyes2() {
   }
   tlc.write();
 }
+
 
 void eyes3() {
   cut();
@@ -249,43 +245,34 @@ void eyes3() {
   }
 }
 
-/* END EYE STYLES (static) */
+/*----END EYE STYLES (static)----*/
 
-/* ANIMATIONS */
 
+/*------ANIMATIONS------*/
 void scan() {
   cut();
   mode = SCAN;
   scanButton = 1;
 
-  digitalWrite(0, HIGH);  /*1*/
-  digitalWrite(2, HIGH);  /*2*/
-  digitalWrite(14, HIGH); /*3*/
-  digitalWrite(12, HIGH); /*4*/
-  digitalWrite(13, HIGH); /*5*/
-  digitalWrite(15, HIGH); /*6*/
+  setRows(1, 1, 1, 1, 1, 1);
 
-  while (scanButton) {
-
-    for (int i = 30; i >= 1; i--) {
-      tlc.setPWM(cols[i], aan);
-      tlc.setPWM(cols[i - 1], aan);
-      tlc.write();
-      delay(40);
-      tlc.setPWM(cols[i], uit);
-      tlc.setPWM(cols[i - 1], uit);
-      tlc.write();
-    }
-    for (int i = 0; i <= 29; i++) {
-      tlc.setPWM(cols[i], aan);
-      tlc.setPWM(cols[i + 1], aan);
-      tlc.write();
-      delay(40);
-      tlc.setPWM(cols[i], uit);
-      tlc.setPWM(cols[i + 1], uit);
-      tlc.write();
-    }
-    break;
+  for (int i = 30; i >= 1; i--) {
+    tlc.setPWM(cols[i], aan);
+    tlc.setPWM(cols[i - 1], aan);
+    tlc.write();
+    delay(40);
+    tlc.setPWM(cols[i], uit);
+    tlc.setPWM(cols[i - 1], uit);
+    tlc.write();
+  }
+  for (int i = 0; i <= 29; i++) {
+    tlc.setPWM(cols[i], aan);
+    tlc.setPWM(cols[i + 1], aan);
+    tlc.write();
+    delay(40);
+    tlc.setPWM(cols[i], uit);
+    tlc.setPWM(cols[i + 1], uit);
+    tlc.write();
   }
 }
 
@@ -294,43 +281,35 @@ void halfScan() {
   mode = HALF_SCAN;
   scanButton = 1;
 
-  digitalWrite(0, HIGH);  /*1*/
-  digitalWrite(2, HIGH);  /*2*/
-  digitalWrite(14, HIGH); /*3*/
-  digitalWrite(12, HIGH); /*4*/
-  digitalWrite(13, HIGH); /*5*/
-  digitalWrite(15, HIGH); /*6*/
+  setRows(1, 1, 1, 1, 1, 1);
 
-  while (scanButton) {
-
-    for (int i = 30; i >= 1; i--) {
-      tlc.setPWM(cols[i], aan);
-      tlc.setPWM(cols[i - 1], aan);
-      tlc.write();
-      delay(40);
-      tlc.setPWM(cols[i], uit);
-      tlc.setPWM(cols[i - 1], uit);
-      tlc.write();
-    }
-
-    break;
+  for (int i = 30; i >= 1; i--) {
+    tlc.setPWM(cols[i], aan);
+    tlc.setPWM(cols[i - 1], aan);
+    tlc.write();
+    delay(60);
+    tlc.setPWM(cols[i], uit);
+    tlc.setPWM(cols[i - 1], uit);
+    tlc.write();
   }
 }
+/*----END ANIMATIONS----*/
 
-/* END ANIMATIONS */
 
-
-/* ESSENTIAL FUNCTIONS */
+/*----ESSENTIAL FUNCTIONS----*/
+void setRows(bool x, bool y, bool z, bool a, bool b, bool c) {
+  digitalWrite(0, x);  /*1*/
+  digitalWrite(2, y);  /*2*/
+  digitalWrite(14, z); /*3*/
+  digitalWrite(12, a); /*4*/
+  digitalWrite(13, b); /*5*/
+  digitalWrite(15, c); /*6*/
+}
 
 void cut() {
   scanButton = 0;
 
-  digitalWrite(0, LOW);  /*1*/
-  digitalWrite(2, LOW);  /*2*/
-  digitalWrite(14, LOW); /*3*/
-  digitalWrite(12, LOW); /*4*/
-  digitalWrite(13, LOW); /*5*/
-  digitalWrite(15, LOW); /*6*/
+  setRows(0, 0, 0, 0, 0, 0);
 
   for (int i = 0; i <= 30; i++) {
     tlc.setPWM(cols[i], uit);
@@ -339,12 +318,7 @@ void cut() {
 }
 
 void burst() {
-  digitalWrite(0, HIGH);  /*1*/
-  digitalWrite(2, HIGH);  /*2*/
-  digitalWrite(14, HIGH); /*3*/
-  digitalWrite(12, HIGH); /*4*/
-  digitalWrite(13, HIGH); /*5*/
-  digitalWrite(15, HIGH); /*6*/
+  setRows(1, 1, 1, 1, 1, 1);
 
   for (int i = 0; i <= 30; i++) {
     tlc.setPWM(cols[i], aan);
@@ -352,10 +326,10 @@ void burst() {
   }
 }
 
-/* END BASE FUNCTIONS */
+/*----END ESSENTIAL FUNCTIONS----*/
 
 
-
+/*------SERVER COMMANDS------*/
 void handle_OnConnect() {
   powerOn();
   server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
@@ -399,6 +373,9 @@ void handle_halfScan() {
 void handle_NotFound() {
   server.send(404, "text/plain", "Not found");
 }
+
+/*------END SERVER COMMANDS------*/
+
 
 String SendHTML(uint8_t powerState, uint8_t button2stat, uint8_t scanMode) {
   String ptr = "<!DOCTYPE html> <html>\n";
