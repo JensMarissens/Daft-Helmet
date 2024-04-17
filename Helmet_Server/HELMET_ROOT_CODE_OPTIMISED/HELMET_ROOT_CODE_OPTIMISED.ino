@@ -1,3 +1,6 @@
+#include <Arduino.h>
+#include <user_interface.h>
+
 #include "Adafruit_TLC5947.h"
 
 #include <ESP8266WiFi.h>
@@ -28,10 +31,12 @@ int cols[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18,
 int rows[] = { 0, 2, 14, 12, 13, 15 };
 
 bool powerButton;
-bool button2;
+bool eyeStyleButton;
 bool scanButton;
+unsigned long timeVal = 600000;  //(10 minutes)  OR you could use LONG_MAX;
 
-enum Mode { POWER,
+enum Mode { POWER_ON,
+            POWER_DOWN,
             EYES1,
             EYES2,
             EYES3,
@@ -40,11 +45,10 @@ enum Mode { POWER,
 
 Mode mode;
 
-
 /*------SETUP------*/
 void setup() {
   Serial.begin(115200);
-  delay(100);
+
   pinMode(rows[0], OUTPUT);
   pinMode(rows[1], OUTPUT);
   pinMode(rows[2], OUTPUT);
@@ -56,6 +60,16 @@ void setup() {
   pinMode(5, OUTPUT);
   pinMode(16, OUTPUT);
 
+  /*------INITIATE POWER_ON ANIMATION------*/
+  rst_info* resetInfo = ESP.getResetInfoPtr();
+
+  if (resetInfo->reason == 6) {
+    mode = POWER_ON;
+  }
+  /*---------------------------------------*/
+
+
+  /*----------SETUP WEB INTERFACE----------*/
   Serial.println("TLC5974 test");
   tlc.begin();
   if (oe >= 0) {
@@ -91,14 +105,22 @@ void setup() {
 
   server.begin();
   Serial.println("HTTP server started");
+  /*---------------------------------------*/
 }
-
+/*---------------------------------------*/
 
 /*------LOOP------*/
 void loop() {
   server.handleClient();
 
   switch (mode) {
+    case POWER_ON:
+      if (powerButton == 0) {
+        powerOn();
+      } else {
+        eyes2();
+      }
+      break;
     case EYES3:
       if (scanButton) {
         eyes3();
@@ -114,8 +136,12 @@ void loop() {
         halfScan();
       }
       break;
+    case POWER_DOWN:
+      if (timeVal + 1000 <= millis()) {
+        ESP.deepSleep(0);
+      }
+      break;
     default:
-
       break;
   }
 }
@@ -141,6 +167,8 @@ void powerOn() {
 }
 
 void powerOff() {
+  mode = POWER_DOWN;
+
   burst();
   delay(10);
 
@@ -151,6 +179,7 @@ void powerOff() {
   }
 
   powerButton = 0;
+  timeVal = millis();
 }
 /*----END POWER MODES----*/
 
@@ -159,7 +188,7 @@ void powerOff() {
 void eyes() {
   cut();
 
-  button2 = 0;
+  eyeStyleButton = 0;
 
   setRows(0, 0, 1, 1, 0, 0);
 
@@ -189,7 +218,7 @@ void eyes() {
 void eyes2() {
   cut();
 
-  button2 = 1;
+  eyeStyleButton = 1;
 
   setRows(0, 1, 1, 1, 1, 0);
 
@@ -297,13 +326,13 @@ void halfScan() {
 
 
 /*----ESSENTIAL FUNCTIONS----*/
-void setRows(bool x, bool y, bool z, bool a, bool b, bool c) {
-  digitalWrite(0, x);  /*1*/
-  digitalWrite(2, y);  /*2*/
-  digitalWrite(14, z); /*3*/
-  digitalWrite(12, a); /*4*/
-  digitalWrite(13, b); /*5*/
-  digitalWrite(15, c); /*6*/
+void setRows(bool x, bool y, bool z, bool a, bool b, bool c) {  //write similar function for rows??
+  digitalWrite(rows[0], x);                                     /*1*/
+  digitalWrite(rows[1], y);                                     /*2*/
+  digitalWrite(rows[2], z);                                     /*3*/
+  digitalWrite(rows[3], a);                                     /*4*/
+  digitalWrite(rows[4], b);                                     /*5*/
+  digitalWrite(rows[5], c);                                     /*6*/
 }
 
 void cut() {
@@ -331,43 +360,42 @@ void burst() {
 
 /*------SERVER COMMANDS------*/
 void handle_OnConnect() {
-  powerOn();
-  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
+  server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton));
 }
 
 void handle_powerOn() {
   powerOn();
-  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
+  server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton));
 }
 
 void handle_powerOff() {
   powerOff();
-  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
+  server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton));
 }
 
 void handle_eyes() {
   eyes();
-  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
+  server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton));
 }
 
 void handle_eyes2() {
   eyes2();
-  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
+  server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton));
 }
 
 void handle_cut() {
   cut();
-  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
+  server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton));
 }
 
 void handle_scan() {
   scan();
-  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
+  server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton));
 }
 
 void handle_halfScan() {
   halfScan();
-  server.send(200, "text/html", SendHTML(powerButton, button2, scanButton));
+  server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton));
 }
 
 void handle_NotFound() {
@@ -377,7 +405,7 @@ void handle_NotFound() {
 /*------END SERVER COMMANDS------*/
 
 
-String SendHTML(uint8_t powerState, uint8_t button2stat, uint8_t scanMode) {
+String SendHTML(uint8_t powerState, uint8_t eyeStyleButtonstat, uint8_t scanMode) {
   String ptr = "<!DOCTYPE html> <html>\n";
   ptr += "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n";
   ptr += "<title>Visor Controls</title>\n";
@@ -401,7 +429,7 @@ String SendHTML(uint8_t powerState, uint8_t button2stat, uint8_t scanMode) {
     ptr += "<p>Visor Status: OFF</p><a class=\"button button-on\" href=\"/powerOn\">Turn ON</a>\n";
   }
 
-  if (button2stat) {
+  if (eyeStyleButtonstat) {
     ptr += "<p>Eye style: 1</p><a class=\"button button-off\" href=\"/eyes\">2</a>\n";
   } else {
     ptr += "<p>Eye style: 2</p><a class=\"button button-on\" href=\"/eyes2\">1</a>\n";
