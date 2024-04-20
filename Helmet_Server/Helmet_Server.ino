@@ -1,3 +1,5 @@
+//I'm leaving this 2 year old shitty code so you can see where this came from. You can learn, this is still luke warm chatGPT assisted ass code, but it works. Hell, I'm working on adding text input to the web UI as I'm writing this. Why do you think I'm on Github? 
+
 #include "Adafruit_TLC5947.h" //CODE REQUIRES SEVERE OPTIMIZATION
 
 #include <ESP8266WiFi.h>
