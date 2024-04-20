@@ -1,19 +1,21 @@
 #include "alpha_numeric_library.h"
 
+static byte zero[5][4] = {
+  { 1, 1, 1, 1 },
+  { 1, 0, 0, 1 },
+  { 1, 0, 0, 1 },
+  { 1, 0, 0, 1 },
+  { 1, 1, 1, 1 }
+};
 
-byte zero[5][5] = {
-    {1, 1, 1, 1, 1},
-    {1, 0, 0, 0, 1},
-    {1, 0, 0, 0, 1},
-    {1, 0, 0, 0, 1},
-    {1, 1, 1, 1, 1}
-  };
+static byte A[5][4] = {
+        {0, 1, 1, 0},
+        {1, 0, 0, 1},
+        {1, 1, 1, 1},
+        {1, 0, 0, 1},
+        {1, 0, 0, 1}
+      };
 
-  
-
-String text_input(String s)
-{
-
-  return s;
+byte getMatrixLetter(int row, int col) {
+  return A[row][col];
 }
-
