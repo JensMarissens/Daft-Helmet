@@ -21,8 +21,8 @@ Adafruit_TLC5947 tlc = Adafruit_TLC5947(NUM_TLC5974, clock, data, latch);
 
 
 /* NETWORK CREDENTIALS */
-const char* ssid = "telenet-E2B7EEB";   //REPLACE WITH PHONE HOTSPOT
-const char* password = "Ks2bwcznZcxv";  //REPLACE WITH PHONE HOTSPOT
+const char* ssid = " ";   //REPLACE WITH PHONE HOTSPOT
+const char* password = "";  //REPLACE WITH PHONE HOTSPOT
 
 ESP8266WebServer server(80);
 
@@ -46,7 +46,8 @@ enum Mode { POWER_ON,
             EYES3,
             HALF_SCAN,
             SCAN,
-            SHOW_TEXT };
+            SHOW_TEXT,
+            BLANK };
 
 Mode mode;
 
@@ -142,7 +143,6 @@ void loop() {
       break;
     case SHOW_TEXT:
       if (textButton) {
-        cut();
         textInputFunction();
       }
       break;
@@ -336,8 +336,34 @@ String textInputFunction() {
   mode = SHOW_TEXT;
   textButton = 1;
 
+  byte element;
+
   String output = text_input(textInput);
 
+
+/*-----------THE SHITSHOW-----------*/
+  for (int row = 0; row < 5; row++) {
+    cut();
+    for (int col = 0; col < 5; col++) {
+      element = getMatrixLetter(row, col);
+      Serial.print(element);
+      Serial.print(" ");
+
+      if(element == 1){
+        tlc.setPWM(cols[col + 10], aan);
+      }
+
+
+    }
+    if(element == 1){
+        digitalWrite(rows[row], 1);
+      }
+    tlc.write();
+    delay(5);
+
+    Serial.println();
+  }
+/*-----------THE SHITSHOW-----------*/
 
 
   Serial.println(output);
@@ -445,9 +471,9 @@ String SendHTML(uint8_t powerState, bool eyeStyleButtonState, uint8_t scanMode, 
 
 
   if (powerState) {
-    ptr += "<p>Visor Status: ON</p><a class=\"button button-off\" href=\"/powerOff\"> Turn OFF</a>\n";
+    ptr += "<p>Visor Status: ON</p><a class=\"button button-off\" href=\"/powerOff\">Turn OFF</a>\n";
   } else {
-    ptr += "<p>Visor Status: OFF</p><a class=\"button button-off\" href=\"/\"> HW Reset</a>\n";
+    ptr += "<p>Visor Status: OFF</p><a class=\"button button-off\" href=\"/\">HW Reset</a>\n";
   }
 
   if (eyeStyleButtonState) {
@@ -461,21 +487,24 @@ String SendHTML(uint8_t powerState, bool eyeStyleButtonState, uint8_t scanMode, 
 
 
   if (scanMode && mode == HALF_SCAN) {
-    ptr += "<p>Scan mode:</p><a class=\"button button-off\" href=\"/scan\">HALF</a>\n";
+    ptr += "<p>Scan mode: FULL</p><a class=\"button button-off\" href=\"/scan\">HALF</a>\n";
   } else {
-    ptr += "<p>Scan mode:</p><a class=\"button button-on\" href=\"/halfScan\">FULL</a>\n";
+    ptr += "<p>Scan mode: HALF</p><a class=\"button button-on\" href=\"/halfScan\">FULL</a>\n";
   }
 
-  if (textButton == 1) {
-    ptr += "<p>Display text:</p><form action=\"/updateText\" method=\"GET\"><input type=\"text\" name=\"textValue\" value=\"" + String(textInputValue) + "\"></input><p><button class=\"button button-off\" type=\"submit\">Update</button></form></p>";
-    textButton = 0;
+  if (mode == SHOW_TEXT) {
+    ptr += "<p>Display text:</p><input type=\"text\" name=\"textValue\" value=\"" + String(textInputValue) + "\"></input><p><a class=\"button button-off\" href=\"/#\">Turn OFF</a>\n";
+    mode = BLANK;
   } else {
     ptr += "<p>Display text:</p><form action=\"/updateText\" method=\"GET\"><input type=\"text\" name=\"textValue\" value=\"" + String(textInputValue) + "\"></input><p><button class=\"button button-off\" type=\"submit\">Update</button></form></p>";
-    textButton = 0;
+    mode = SHOW_TEXT;
   }
 
 
 
+  ptr += "</body>\n</html>\n";
+  return ptr;
+}
   ptr += "</body>\n</html>\n";
   return ptr;
 }
