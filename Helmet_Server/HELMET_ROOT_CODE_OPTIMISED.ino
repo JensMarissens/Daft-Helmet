@@ -22,7 +22,7 @@ Adafruit_TLC5947 tlc = Adafruit_TLC5947(NUM_TLC5974, clock, data, latch);
 
 /* NETWORK CREDENTIALS */
 const char* ssid = " ";   //REPLACE WITH PHONE HOTSPOT
-const char* password = " ";  //REPLACE WITH PHONE HOTSPOT
+const char* password = "";  //REPLACE WITH PHONE HOTSPOT
 
 ESP8266WebServer server(80);
 
@@ -46,7 +46,8 @@ enum Mode { POWER_ON,
             EYES3,
             HALF_SCAN,
             SCAN,
-            SHOW_TEXT };
+            SHOW_TEXT,
+            BLANK };
 
 Mode mode;
 
@@ -470,9 +471,9 @@ String SendHTML(uint8_t powerState, bool eyeStyleButtonState, uint8_t scanMode, 
 
 
   if (powerState) {
-    ptr += "<p>Visor Status: ON</p><a class=\"button button-off\" href=\"/powerOff\"> Turn OFF</a>\n";
+    ptr += "<p>Visor Status: ON</p><a class=\"button button-off\" href=\"/powerOff\">Turn OFF</a>\n";
   } else {
-    ptr += "<p>Visor Status: OFF</p><a class=\"button button-off\" href=\"/\"> HW Reset</a>\n";
+    ptr += "<p>Visor Status: OFF</p><a class=\"button button-off\" href=\"/\">HW Reset</a>\n";
   }
 
   if (eyeStyleButtonState) {
@@ -491,16 +492,19 @@ String SendHTML(uint8_t powerState, bool eyeStyleButtonState, uint8_t scanMode, 
     ptr += "<p>Scan mode: HALF</p><a class=\"button button-on\" href=\"/halfScan\">FULL</a>\n";
   }
 
-  if (textButton) {
-    ptr += "<p>Display text:</p><form action=\"/updateText\" method=\"GET\"><input type=\"text\" name=\"textValue\" value=\"" + String(textInputValue) + "\"></input><p><button class=\"button button-off\" type=\"submit\">Turn OFF</button></form></p>";
-    textButton = 0;
+  if (mode == SHOW_TEXT) {
+    ptr += "<p>Display text:</p><input type=\"text\" name=\"textValue\" value=\"" + String(textInputValue) + "\"></input><p><a class=\"button button-off\" href=\"/#\">Turn OFF</a>\n";
+    mode = BLANK;
   } else {
     ptr += "<p>Display text:</p><form action=\"/updateText\" method=\"GET\"><input type=\"text\" name=\"textValue\" value=\"" + String(textInputValue) + "\"></input><p><button class=\"button button-off\" type=\"submit\">Update</button></form></p>";
-    textButton = 1;
+    mode = SHOW_TEXT;
   }
 
 
 
+  ptr += "</body>\n</html>\n";
+  return ptr;
+}
   ptr += "</body>\n</html>\n";
   return ptr;
 }
