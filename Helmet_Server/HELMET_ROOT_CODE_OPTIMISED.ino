@@ -151,7 +151,7 @@ void loop() {
         ESP.deepSleep(0);
       }
       break;
-    default:
+    default: //add deepsleep after timeVal (10 minutes). Maybe consider a hard 'force on' parameter for wearing. like a 'Display mode'. When not battery powered as well maybe?
       break;
   }
 }
@@ -170,7 +170,7 @@ void powerOn() {
     delay(40);
   }
 
-  delay(500);
+  delay(500); //shorten
   cut();
 
   eyes2(eyeStyleButton);
