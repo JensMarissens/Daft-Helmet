@@ -29,6 +29,7 @@ const char* ssid = "";   // REPLACE WITH PHONE HOTSPOT
 const char* password = "";  // REPLACE WITH PHONE HOTSPOT
 
 
+
 ESP8266WebServer server(80);
 
 int cols[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30 };
@@ -37,7 +38,7 @@ int rows[] = { 0, 2, 14, 12, 13, 15 };
 bool powerButton = 0;
 bool eyeStyleButton;
 bool scanButton;
-bool textButton = 0;
+bool textButton;
 String textInput = "";
 
 unsigned long timeVal = 600000;  //(10 minutes)  OR you could use LONG_MAX;
@@ -52,6 +53,8 @@ enum Mode { POWER_ON,
             SHOW_TEXT };
 
 Mode mode;
+
+
 
 
 void setup() {
@@ -141,7 +144,8 @@ void setup() {
   server.on("/scan", handle_scan);
   server.on("/halfScan", handle_halfScan);
   server.on("/cut", handle_cut);
-  server.on("/updateText", handle_text);
+  server.on("/text", handle_text);
+
   server.onNotFound(handle_NotFound);
 
   server.begin();
@@ -363,10 +367,27 @@ void halfScan() {
   }
 }
 
-String textInputFunction(String text) {
+void textInputFunction(String text) {
+
   cut();
   mode = SHOW_TEXT;
   textButton = 1;
+
+  buildMatrix(text);
+  textButton = 0;
+
+  //send string to lib functon.
+  //receive output lib funtion.
+
+  //while(nietInterrupt)
+    // int shift = 1;
+    //for shift in range 0 -> arrayWidth;
+      //for columnIndex in range shift to shift + 30
+        //display output per column
+      //
+      //delay(100);
+    //
+  //
 
   //String output = text_input("Test");
   
@@ -448,9 +469,16 @@ void handle_halfScan() {
 }
 
 void handle_text() {
-  textInputFunction(textInput);
-  server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton, textInput));
+  if (server.hasArg("textValue")) {
+    String newTextValue = server.arg("textValue");
+
+    textInputFunction(newTextValue);
+    server.send(200, "text/html", SendHTML(powerButton, eyeStyleButton, scanButton, newTextValue));
+  } else {
+    server.send(400, "text/plain", "Missing textValue parameter");
+  }
 }
+
 
 void handle_NotFound() {
   server.send(404, "text/plain", "Not found");
@@ -458,7 +486,7 @@ void handle_NotFound() {
 
 /*------END SERVER COMMANDS------*/
 
-String SendHTML(uint8_t powerState, bool eyeStyleButtonState, uint8_t scanMode, String textInputValue) {  //store last value and compare?
+String SendHTML(uint8_t powerState, bool eyeStyleButtonState, uint8_t scanMode, String textInputValue) {
   String ptr = "<!DOCTYPE html> <html>\n"
                "<head><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=no\">\n"
                "<title>Visor Controls</title>\n"
@@ -473,7 +501,6 @@ String SendHTML(uint8_t powerState, bool eyeStyleButtonState, uint8_t scanMode, 
                "input[type=text] {width: 200px;padding: 12px 20px;margin: 8px 0;box-sizing: border-box;border: 2px solid #ccc;border-radius: 4px;background-color: #f8f8f8;}\n"
                "</style></head>\n<body>\n<h1>Visor Controls OTA</h1>\n<h3></h3>\n";
 
-
   if (powerState) {
     ptr += "<p>Visor Status: ON</p><a class=\"button button-off\" href=\"/powerOff\"> Turn OFF</a>\n";
   } else {
@@ -483,14 +510,10 @@ String SendHTML(uint8_t powerState, bool eyeStyleButtonState, uint8_t scanMode, 
   if (eyeStyleButtonState) {
     ptr += "<p>Eye style: 2</p><a class=\"button button-off\" href=\"/eyes=" + String(eyeStyleButtonState) + "\">1</a>\n";
     eyeStyleButton = 0;
-
-    //Serial.println(text_input("test"));
-
   } else {
     ptr += "<p>Eye style: 1</p><a class=\"button button-on\" href=\"/eyes=" + String(eyeStyleButtonState) + "\">2</a>\n";
     eyeStyleButton = 1;
   }
-
 
   if (scanMode && mode == HALF_SCAN) {
     ptr += "<p>Scan mode:</p><a class=\"button button-off\" href=\"/scan\">HALF</a>\n";
@@ -498,14 +521,10 @@ String SendHTML(uint8_t powerState, bool eyeStyleButtonState, uint8_t scanMode, 
     ptr += "<p>Scan mode:</p><a class=\"button button-on\" href=\"/halfScan\">FULL</a>\n";
   }
 
-
-  if (textButton) {
-    ptr += "<p>Display text:</p><p><input type=\"text\" name=\"textValue\" placeholder=\"" + String(textInputValue) + "\" \n></input></p><a class=\"button button-off\" href=\"/test/" + String(textInput) + "\">Update</a>\n";
-    textButton = 0;
-  } else {
-    ptr += "<p>Display text:</p><p><input type=\"text\" name=\"textValue\" placeholder=\"" + String(textInputValue) + "\" \n></input></p><a class=\"button button-off\" href=\"/test2/" + String(textInput) + "\">Update</a>\n";
-    textButton = 0;
-  }
+  ptr += "<form action=\"/text\" method=\"post\">"
+         "<p>Display text:</p>"
+         "<p><input type=\"text\" name=\"textValue\" placeholder=\"Enter text\" value=\"" + textInputValue + "\"></p>"
+         "<input type=\"submit\" value=\"Update\"></form>";
 
   ptr += "</body>\n</html>\n";
   return ptr;
